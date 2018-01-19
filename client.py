@@ -18,10 +18,11 @@ print("Format:")
 print("PUB/SUB:TOPIC:MESSAGE")
 print("Topics: dog,cat,owl,bat")
 msg = input()
+pub_sub = msg[0:3].upper()
 client_socket.connect((ADDRESS, PORT))
 print("Sending message")
 client_socket.send(bytes(msg, "utf-8"))
-if msg[0:3] == "PUB": #publisher can publish messages
+if pub_sub == "PUB": #publisher can publish messages
 	while 1:
 		print("Server:", msg)
 		msg = input("PUB:TOPIC:MESSAGE or q\n")

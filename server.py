@@ -49,6 +49,7 @@ class ThreadManager:
 			return -1
 		else:
 			pub_sub = msg[0:3]
+			pub_sub = pub_sub.upper()
 			topicChunk = msg[4:msg.index(":", 4)]
 			topics = topicChunk.split(",")
 			msg = msg[msg.index(":", 4) + 1:]
