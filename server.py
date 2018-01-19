@@ -11,13 +11,14 @@ Created on Fri Jan 19 11:43:15 2018
 import socket, threading
 
 class Topic:
-	def __init__(self):
+	def __init__(self, name):
+		self.name = name
 		self.messages = []
-		self.subscribers = []
+		self.subscribers = dict([])
 		
 	def add_subscriber(self, subscriber):
 		if subscriber not in self.subscribers:
-			self.subscribers.append(subscriber)
+			self.subscribers[subscriber] = 0
 			self.send_messages()
 		
 	def add_message(self, message):
@@ -26,8 +27,11 @@ class Topic:
 		
 	def send_messages(self):
 		for sub in self.subscribers:
-			for msg in self.messages:
+			index = self.subscribers[sub]
+			for a in range(index, len(self.messages)):
+				msg = "SUB:" + self.name + ":" + self.messages[a]
 				sub.send_message(msg)
+			self.subscribers[sub] = len(self.messages)
 
 class ThreadManager:
 	
@@ -38,20 +42,29 @@ class ThreadManager:
 
 	def new_thread(self, address, c_socket):
 		msg = c_socket.recv(512).decode()
-		pub_sub = msg[0:3]
-		topic = msg[4:msg.index(":", 4)]
-		msg = msg[msg.index(":", 4) + 1:]
-		thread = self.ClientThread(address, c_socket)
-		if pub_sub == "PUB":
-			if topic in self.topics_list:
-				thread.add_topic(topic, self.topics_list[topic])
+		if len(self.threads) >= self.thread_max:
+			for thread in self.threads:
+				thread.stop()
+			return -1
+		else:
+			pub_sub = msg[0:3]
+			topicChunk = msg[4:msg.index(":", 4)]
+			topics = topicChunk.split(",")
+			msg = msg[msg.index(":", 4) + 1:]
+			thread = self.ClientThread(address, c_socket)
+			if pub_sub == "PUB":
+				for topic in topics:
+					if topic in self.topics_list:
+						self.topics_list[topic].add_message(msg)
+				print("\nClient: %s" % msg)
+				thread.add_topics_list(self.topics_list)
 				thread.start()
-		elif pub_sub == "SUB":
-			if topic in self.topics_list:
-				self.topics_list[topic].add_subscriber(thread)
-		
-		c_socket.send(bytes("connected", "utf-8"))
-		self.threads.append(thread)
+			elif pub_sub == "SUB":
+				for topic in topics:
+					if topic in self.topics_list:
+						self.topics_list[topic].add_subscriber(thread)
+			self.threads.append(thread)
+			print("Threads:", self.threads)
 		
 
 	#a client thread to hold subscriber connection or write publisher message
@@ -64,24 +77,28 @@ class ThreadManager:
 			print("New thread on new connection:", self.c_addr)
 		
 		def run(self):
-			print("running", self)
 			while 1:
 				data = self.c_socket.recv(512)
 				msg = data.decode()
-				print("Client: %s" % msg)
+				print("\nClient: %s" % msg)
 				if msg == "q":
 					print("Client closed socket")
 					client_socket.close()
 					break;
+				topicChunk = msg[4:msg.index(":", 4)]
+				topics = topicChunk.split(",")
 				msg = msg[msg.index(":", 4) + 1:]
-				for topic in self.topics_list:
-					self.topics_list[topic].add_message(msg)
-					self.topics_list[topic].send_messages()
-				self.c_socket.send(data)
+				for topic in topics:
+					if topic in self.topics_list:
+						self.topics_list[topic].add_message(msg)
+						
+		def stop(self):
+			self.c_socket.send(bytes("q","utf-8"))
+			print("closing client socket")
+			self.c_socket.close()
 			
-		def add_topic(self, topic_name, topic_object):
-#			for topic in topics:
-			self.topics_list[topic_name] = topic_object
+		def add_topics_list(self, topics_list):
+			self.topics_list = topics_list
 		
 		def send_message(self, msg):
 			print("Sending message on thread {}\n on connection: {}".format(
@@ -96,10 +113,10 @@ THREAD_MAX = 4
 #create thread manager to create new threads for new client connections
 t_man = ThreadManager(THREAD_MAX)
 #create defalt Topics
-dog = Topic()
-cat = Topic()
-owl = Topic()
-bat = Topic()
+dog = Topic("dog")
+cat = Topic("cat")
+owl = Topic("owl")
+bat = Topic("bat")
 #add Topics to thread managers topic list
 t_man.topics_list["dog"] = dog
 t_man.topics_list["cat"] = cat
@@ -113,7 +130,9 @@ server_socket.listen(5)
 print("Server is listening on %s:%d" % (ADDRESS,PORT))
 while 1:
 	client_socket, address = server_socket.accept()
-	t_man.new_thread(address,client_socket)
+	if t_man.new_thread(address,client_socket) == -1:
+		print("exiting")
+		exit()
 	
 		
 	

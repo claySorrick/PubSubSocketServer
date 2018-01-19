@@ -23,7 +23,6 @@ print("Sending message")
 client_socket.send(bytes(msg, "utf-8"))
 if msg[0:3] == "PUB": #publisher can publish messages
 	while 1:
-		msg = client_socket.recv(512).decode()
 		print("Server:", msg)
 		msg = input("PUB:TOPIC:MESSAGE or q\n")
 		if msg == "q":
