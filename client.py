@@ -14,23 +14,29 @@ PORT = 6000
 
 print("CLIENT START")
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print(client_socket)
+print("Format:")
+print("PUB/SUB:TOPIC:MESSAGE")
+print("Topics: dog,cat,owl,bat")
+msg = input()
 client_socket.connect((ADDRESS, PORT))
-print(client_socket)
-print("Establishing connection...")
-
-while 1:
-	msg = client_socket.recv(512).decode()
-	if msg == "q":
-		print("server closed socket")
-		client_socket.close()
-		break;
-	print("Server: %s" % msg)
-	print("REPLY")
-	msg = input()
-	if msg == "q":
+print("Sending message")
+client_socket.send(bytes(msg, "utf-8"))
+if msg[0:3] == "PUB": #publisher can publish messages
+	while 1:
+		msg = client_socket.recv(512).decode()
+		print("Server:", msg)
+		msg = input("PUB:TOPIC:MESSAGE or q\n")
+		if msg == "q":
+			client_socket.send(bytes(msg, "utf-8"))
+			client_socket.close()
+			print("closing socket and exiting")
+			break;
 		client_socket.send(bytes(msg, "utf-8"))
-		client_socket.close()
-		print("closing socket and exiting")
-		break;
-	client_socket.send(bytes(msg, "utf-8"))
+else: #subscriber just listens and prints new messages
+	while 1:
+		msg = client_socket.recv(512).decode()
+		print("Server:", msg)
+		if msg == "q":
+			client_socket.close()
+			print("Server closing socket and exiting")
+			break;
