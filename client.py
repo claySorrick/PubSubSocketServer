@@ -17,7 +17,6 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print(client_socket)
 client_socket.connect((ADDRESS, PORT))
 print(client_socket)
-client_socket.send(bytes("HELLO", "utf-8"))
 print("Establishing connection...")
 
 while 1:
