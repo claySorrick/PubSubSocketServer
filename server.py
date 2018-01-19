@@ -13,8 +13,9 @@ import socket, threading
 class Topic:
 	def __init__(self, name):
 		self.name = name
-		self.messages = []
-		self.subscribers = dict([])
+		self.messages = [] #list of publisher messages
+		#dictionary of threads, thread is key, message index is value
+		self.subscribers = dict([]) 
 		
 	def add_subscriber(self, subscriber):
 		if subscriber not in self.subscribers:
@@ -83,7 +84,7 @@ class ThreadManager:
 				print("\nClient: %s" % msg)
 				if msg == "q":
 					print("Client closed socket")
-					client_socket.close()
+					self.c_socket.close()
 					break;
 				topicChunk = msg[4:msg.index(":", 4)]
 				topics = topicChunk.split(",")
